@@ -27,7 +27,7 @@ A lightweight, self-hosted video streaming application for your local network. S
 
 1. **Clone or download** this project to your desired location:
    ```bash
-   cd e:\Downloads\Mini-YT-v2
+   cd Local-Movie-Server
    ```
 
 2. **Install dependencies**:
@@ -38,7 +38,7 @@ A lightweight, self-hosted video streaming application for your local network. S
 3. **Add your movies**:
    Create a `Movies` folder in the project root and organize your videos:
    ```
-   Mini-YT-v2/
+   Local-Movie-Server/
    ├── Movies/
    │   ├── Movie Name 1/
    │   │   ├── video.mp4
@@ -61,7 +61,7 @@ A lightweight, self-hosted video streaming application for your local network. S
 ## 📁 File Structure
 
 ```
-Mini-YT-v2/
+Local-Movie-Server/
 ├── app.py                 # Flask server and routing
 ├── templates/
 │   └── index.html         # Web UI and player
