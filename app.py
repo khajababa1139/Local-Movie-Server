@@ -19,12 +19,13 @@ def get_movies():
     if not movies_path.exists():
         return movies
     
-    for movie_folder in movies_path.iterdir():
-        if movie_folder.is_dir():
+    for item in movies_path.iterdir():
+        if item.is_dir():
+            # Existing logic: look for videos in subdirectories
             video_file = None
             subtitle_file = None
             
-            for file in movie_folder.iterdir():
+            for file in item.iterdir():
                 if file.suffix.lower() in VIDEO_EXTENSIONS:
                     video_file = file.name
                 elif file.suffix.lower() in SUBTITLE_EXTENSIONS:
@@ -32,11 +33,29 @@ def get_movies():
             
             if video_file:
                 movies.append({
-                    'folder': movie_folder.name,
-                    'title': movie_folder.name.replace('_', ' '),
+                    'folder': item.name,
+                    'title': item.name.replace('_', ' '),
                     'video': video_file,
                     'subtitle': subtitle_file
                 })
+        elif item.is_file() and item.suffix.lower() in VIDEO_EXTENSIONS:
+            # New logic: look for bare video files in Movies folder
+            video_file = item.name
+            subtitle_file = None
+            
+            # Look for matching subtitle file in Movies folder
+            for subtitle_ext in SUBTITLE_EXTENSIONS:
+                subtitle_candidate = item.parent / (item.stem + subtitle_ext)
+                if subtitle_candidate.exists():
+                    subtitle_file = subtitle_candidate.name
+                    break
+            
+            movies.append({
+                'folder': '__bare__',
+                'title': item.stem.replace('_', ' '),
+                'video': video_file,
+                'subtitle': subtitle_file
+            })
     
     return sorted(movies, key=lambda x: x['title'])
 
@@ -53,7 +72,11 @@ def api_movies():
 @app.route('/video/<folder>/<filename>')
 def video(folder, filename):
     """Stream video file with range request support"""
-    video_path = Path(MOVIES_FOLDER) / folder / filename
+    # Handle both folder-based and bare video files
+    if folder == '__bare__':
+        video_path = Path(MOVIES_FOLDER) / filename
+    else:
+        video_path = Path(MOVIES_FOLDER) / folder / filename
     
     if not video_path.exists():
         return "Video not found", 404
@@ -100,7 +123,11 @@ def video(folder, filename):
 @app.route('/subtitle/<folder>/<filename>')
 def subtitle(folder, filename):
     """Serve subtitle file"""
-    subtitle_path = Path(MOVIES_FOLDER) / folder / filename
+    # Handle both folder-based and bare video files
+    if folder == '__bare__':
+        subtitle_path = Path(MOVIES_FOLDER) / filename
+    else:
+        subtitle_path = Path(MOVIES_FOLDER) / folder / filename
     
     if not subtitle_path.exists():
         return "Subtitle not found", 404
