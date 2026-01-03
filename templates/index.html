@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Video Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        #movieList {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .movie-card {
+            background: #1f1f1f;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-4px);
+            background: #2a2a2a;
+            border-color: #3ea6ff;
+        }
+
+        .movie-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .movie-subtitle {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        #playerSection {
+            display: none;
+            margin-top: 30px;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            max-width: 100%;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: #3ea6ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2d8fd8;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #backBtn {
+            background: #666;
+        }
+
+        #backBtn:hover {
+            background: #777;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            #movieList {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 LAN Video Player</h1>
+        
+        <div id="movieListSection">
+            <div id="movieList" class="loading">Loading movies...</div>
+        </div>
+
+        <div id="playerSection">
+            <video id="videoPlayer" controls crossorigin="anonymous">
+                <track id="subtitleTrack" kind="subtitles" srclang="en" label="English">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div class="controls">
+                <button id="backBtn">← Back to List</button>
+                <button id="rewind5">⏪ -5s</button>
+                <button id="playPause">⏯ Play/Pause</button>
+                <button id="forward5">⏩ +5s</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const movieList = document.getElementById('movieList');
+        const movieListSection = document.getElementById('movieListSection');
+        const playerSection = document.getElementById('playerSection');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const subtitleTrack = document.getElementById('subtitleTrack');
+        const backBtn = document.getElementById('backBtn');
+        const rewind5 = document.getElementById('rewind5');
+        const playPause = document.getElementById('playPause');
+        const forward5 = document.getElementById('forward5');
+
+        let currentMovie = null;
+
+        // Load movies from API
+        async function loadMovies() {
+            try {
+                const response = await fetch('/api/movies');
+                const movies = await response.json();
+                
+                if (movies.length === 0) {
+                    movieList.innerHTML = '<p class="loading">No movies found. Add movie folders to the Movies directory.</p>';
+                    return;
+                }
+
+                movieList.innerHTML = '';
+                movieList.className = '';
+                
+                movies.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-subtitle">${movie.video}</div>
+                    `;
+                    card.onclick = () => playMovie(movie);
+                    movieList.appendChild(card);
+                });
+            } catch (error) {
+                movieList.innerHTML = '<p class="loading">Error loading movies. Make sure the server is running.</p>';
+                console.error('Error:', error);
+            }
+        }
+
+        // Play selected movie
+        function playMovie(movie) {
+            currentMovie = movie;
+            
+            // Set video source
+            videoPlayer.src = `/video/${movie.folder}/${movie.video}`;
+            
+            // Set subtitle if available
+            if (movie.subtitle) {
+                subtitleTrack.src = `/subtitle/${movie.folder}/${movie.subtitle}`;
+                subtitleTrack.default = true;
+            } else {
+                subtitleTrack.src = '';
+                subtitleTrack.default = false;
+            }
+            
+            // Show player, hide list
+            movieListSection.style.display = 'none';
+            playerSection.style.display = 'block';
+            
+            // Play video
+            videoPlayer.load();
+            videoPlayer.play();
+        }
+
+        // Back to movie list
+        backBtn.onclick = () => {
+            videoPlayer.pause();
+            videoPlayer.src = '';
+            playerSection.style.display = 'none';
+            movieListSection.style.display = 'block';
+            currentMovie = null;
+        };
+
+        // Rewind 5 seconds
+        rewind5.onclick = () => {
+            videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 5);
+        };
+
+        // Play/Pause toggle
+        playPause.onclick = () => {
+            if (videoPlayer.paused) {
+                videoPlayer.play();
+            } else {
+                videoPlayer.pause();
+            }
+        };
+
+        // Forward 5 seconds
+        forward5.onclick = () => {
+            videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 5);
+        };
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (playerSection.style.display === 'none') return;
+            
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    playPause.click();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    rewind5.click();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    forward5.click();
+                    break;
+            }
+        });
+
+        // Load movies on page load
+        loadMovies();
+    </script>
+</body>
+</html>
