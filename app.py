@@ -166,23 +166,8 @@ def subtitle(folder, filename):
     return send_file(subtitle_path, mimetype='text/plain')
 
 if __name__ == '__main__':
-    # Check and create Movies folder if it doesn't exist
-    movies_path = Path(MOVIES_FOLDER)
-    
-    if movies_path.exists():
-        print(f"✓ Movies folder found at: {movies_path.absolute()}")
-    else:
-        try:
-            movies_path.mkdir(exist_ok=True, parents=True)
-            print(f"✓ Movies folder created at: {movies_path.absolute()}")
-        except PermissionError:
-            print(f"✗ Error: Permission denied creating Movies folder at {movies_path.absolute()}")
-            print("✗ Please check directory permissions and try again.")
-        except Exception as e:
-            print(f"✗ Error creating Movies folder: {e}")
-            print("✗ Please check your filesystem and try again.")
+    # Create Movies folder if it doesn't exist
+    Path(MOVIES_FOLDER).mkdir(exist_ok=True)
     
     # Run on all interfaces so it's accessible on LAN
-    print("\nStarting Local Movie Server...")
-    print("Server running at: http://0.0.0.0:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)
